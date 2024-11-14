@@ -617,24 +617,31 @@ namespace XCOM2Launcher.Mod
                 missingDependencies.Add((ulong)requiredModId);
             }
 
-            var loadedDependencies = new List<ModEntry>();
+            var details = new List<SteamUGCDetails>();
             
-            if (missingDependencies.Any())
+            // Query details from workshop in batches
+            while (missingDependencies.Any())
             {
-                var details = await Workshop.GetDetailsAsync(missingDependencies);
-                
-                foreach (var detail in details)
+                var identifiers = new List<ulong>(missingDependencies.Take(Workshop.MAX_UGC_RESULTS));
+                missingDependencies.RemoveRange(0, identifiers.Count);
+                var result = await Workshop.GetDetailsAsync(identifiers);
+                details.AddRange(result);
+            }
+
+            var loadedDependencies = new List<ModEntry>();
+
+            // Process results and create Mod-Entries
+            foreach (var detail in details)
+            {
+                if (detail.Details.m_eResult == EResult.k_EResultOK)
                 {
-                    if (detail.Details.m_eResult == EResult.k_EResultOK)
-                    {
-                        var newMod = new ModEntry(detail);
-                        _dependencyCache.TryAdd(newMod.WorkshopID, newMod);
-                        loadedDependencies.Add(newMod);
-                    }
-                    else
-                    {
-                        Log.Warn($"Workshop request for WorkshopId={detail.Details.m_nPublishedFileId} failed with result '{detail.Details.m_eResult}'");
-                    }
+                    var newMod = new ModEntry(detail);
+                    _dependencyCache.TryAdd(newMod.WorkshopID, newMod);
+                    loadedDependencies.Add(newMod);
+                }
+                else
+                {
+                    Log.Warn($"Workshop request for WorkshopId={detail.Details.m_nPublishedFileId} failed with result '{detail.Details.m_eResult}'");
                 }
             }
 

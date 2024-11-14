@@ -540,7 +540,7 @@ namespace XCOM2Launcher.Forms
             }
 
             // Check entries
-            if (activeMods.Count == 0)
+            if (activeMods.Count == 0 && missingMods.Count == 0)
             {
                 MessageBox.Show("No mods found. Bad profile?", "Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
